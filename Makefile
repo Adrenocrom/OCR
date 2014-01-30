@@ -34,9 +34,9 @@ LIBS          = -L/usr/lib -lopencv_core -lopencv_highgui -lopencv_imgproc
 # INCPATH       = -I/opt/local/include
 # LIBS          = -L/opt/local/lib -lopencv_core -lopencv_highgui
 
-SOURCES       = main.cpp feedforward.cpp
-OBJECTS       = main.o feedforward.o
-TARGET        = rekog
+SOURCES       = main.cpp image.cpp feedforward.cpp ocr.cpp
+OBJECTS       = main.o image.o feedforward.o ocr.o
+TARGET        = OCRConverter
 
 all: $(TARGET)
 
@@ -51,8 +51,14 @@ clean:
 distclean: clean
 	-$(DEL_FILE) $(TARGET) 
 
+ocr.o: ocr.cpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ocr.o ocr.cpp
+
 feedforward.o: feedforward.cpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o feedforward.o feedforward.cpp
+
+image.o : image.cpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o image.o image.cpp
 
 main.o: main.cpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
