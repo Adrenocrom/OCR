@@ -27,6 +27,8 @@ using namespace std;
 struct SInputExample {
 	std::vector<float> image;
 	std::vector<float> k;
+	int x;
+	int y;
 };
 
 class COCR
@@ -50,6 +52,7 @@ public:
 	std::vector<SInputExample>* getExamples() {return &vExamples;}
 
 	static int getFromChar(char k);
+	static char getFromInt(int k);
 	static std::vector<float> makeClean(std::vector<float> vIn);
 	static bool correct(std::vector<float> in, std::vector<float> out);
 	static void printv(std::vector<float> in);
@@ -70,6 +73,9 @@ public:
 	void clearExamples();
 
 	std::vector<SInputExample> createExampleSetFromImage(const char* pcFilename);
+	std::vector<SInputExample> createWorkingSetFromImage(const char* pcFilename);
+
+	char detectFromExample(SInputExample example);
 };
 
 #endif

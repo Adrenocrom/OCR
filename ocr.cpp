@@ -54,6 +54,7 @@ int COCR::getFromChar(char k) {
 	if(k == '7') return 7;
 	if(k == '8') return 8;
 	if(k == '9') return 9;
+	if(k == ',') return 10;
 	if(k == 'a') return 11;
 	if(k == 'b') return 12;
 	if(k == 'c') return 13;
@@ -107,6 +108,73 @@ int COCR::getFromChar(char k) {
 	if(k == 'Y') return 61;
 	if(k == 'Z') return 62;
 	else return 63;
+}
+
+char COCR::getFromInt(int k) {
+	if(k == 0) return '0';
+	if(k == 1) return '1';
+	if(k == 2) return '2';
+	if(k == 3) return '3';
+	if(k == 4) return '4';
+	if(k == 5) return '5';
+	if(k == 6) return '6';
+	if(k == 7) return '7';
+	if(k == 8) return '8';
+	if(k == 9) return '9';
+	if(k == 10) return ',';
+	if(k == 11) return 'a';
+	if(k == 12) return 'b';
+	if(k == 13) return 'c';
+	if(k == 14) return 'd';
+	if(k == 15) return 'e';
+	if(k == 16) return 'f';
+	if(k == 17) return 'g';
+	if(k == 18) return 'h';
+	if(k == 19) return 'i';
+	if(k == 20) return 'j';
+	if(k == 21) return 'k';
+	if(k == 22) return 'l';
+	if(k == 23) return 'm';
+	if(k == 24) return 'n';
+	if(k == 25) return 'o';
+	if(k == 26) return 'p';
+	if(k == 27) return 'q';
+	if(k == 28) return 'r';
+	if(k == 29) return 's';
+	if(k == 30) return 't';
+	if(k == 31) return 'u';
+	if(k == 32) return 'v';
+	if(k == 33) return 'w';
+	if(k == 34) return 'x';
+	if(k == 35) return 'y';
+	if(k == 36) return 'z';
+	if(k == 37) return 'A';
+	if(k == 38) return 'B';
+	if(k == 39) return 'C';
+	if(k == 40) return 'D';
+	if(k == 41) return 'E';
+	if(k == 42) return 'F';
+	if(k == 43) return 'G';
+	if(k == 44) return 'H';
+	if(k == 45) return 'I';
+	if(k == 46) return 'J';
+	if(k == 47) return 'K';
+	if(k == 48) return 'L';
+	if(k == 49) return 'M';
+	if(k == 50) return 'N';
+	if(k == 51) return 'O';
+	if(k == 52) return 'P';
+	if(k == 53) return 'Q';
+	if(k == 54) return 'R';
+	if(k == 55) return 'S';
+	if(k == 56) return 'T';
+	if(k == 57) return 'U';
+	if(k == 58) return 'V';
+	if(k == 59) return 'W';
+	if(k == 60) return 'X';
+	if(k == 61) return 'Y';
+	if(k == 62) return 'Z';
+	else return '#';
 }
 
 std::vector<float> COCR::makeClean(std::vector<float> vIn)
@@ -266,10 +334,12 @@ void COCR::train(int iMaxSteps,
 		trained = true;
 		steps++;
 
+		printf("\b\b\b\b\b\b\b\b\b\b\bStep: %d", steps);
+
 		for(int i = 0; i < numExamples; ++i) {
 			std::vector<float> result = makeClean(pFeedForward->calcOutput(vExamples[i].image));
 
-			if(!correct(result, vExamples[i].k)) {
+			if(!correct(result, makeClean(vExamples[i].k))) {
 				trained = false;
 
 				pFeedForward->learnNetwork(vExamples[i].image,
@@ -280,8 +350,7 @@ void COCR::train(int iMaxSteps,
 		}
 	} while(!trained && steps < iMaxSteps);
 
-	pFeedForward->saveWeights("net.txt");
-	printf("has learned from %d examples in %d steps. \n", numExamples, steps);
+	printf("\nHas learned from %d examples in %d steps. \n", numExamples, steps);
 }
 
 std::vector<SInputExample> COCR::createExampleSetFromImage(const char* pcFilename) {
@@ -314,11 +383,51 @@ std::vector<SInputExample> COCR::createExampleSetFromImage(const char* pcFilenam
 		printf("Klasse: ");
 		cv::imshow("small", small);
 		char k = cv::waitKey();
-		printf("%s\n", &k);
+		std::cout<<k<<std::endl;
 
 		example.k = setKClass(getFromChar(k));
 		examples.push_back(example);
 	}
 
 	return examples;
+}
+
+std::vector<SInputExample> COCR::createWorkingSetFromImage(const char* pcFilename) {
+	std::vector<SInputExample> examples;
+
+	cv::Mat src = cv::imread(pcFilename, 1);
+	cv::Mat thr;
+	cv::Mat con;
+
+	cv::cvtColor(src, src, CV_BGR2GRAY);
+	cv::threshold(src, thr, __THRESHOLD__, 255, cv::THRESH_BINARY_INV);
+	cv::imshow("thr", thr);
+
+	thr.copyTo(con);
+
+	std::vector<std::vector<cv::Point> > contours;
+	std::vector< cv::Vec4i > 				 hierarchy;
+
+	cv::findContours(con, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+
+	for(unsigned int i = 0; i < contours.size(); i = hierarchy[i][0]) {
+		cv::Rect r = cv::boundingRect(contours[i]);
+		cv::Mat tmp = src(cv::Rect(r));
+		cv::Mat small;
+		cv::resize(tmp, small, cv::Size(32, 32), 0, 0, cv::INTER_CUBIC);
+
+		SInputExample example;
+		example.image = getImageFromRect(small);
+		example.k = setKClass(getFromChar('-'));
+		example.x = r.x;
+		example.y = r.y;
+		examples.push_back(example);
+	}
+
+	return examples;
+}
+
+char COCR::detectFromExample(SInputExample example) {
+	std::vector<float> result = makeClean(pFeedForward->calcOutput(example.image));
+	return getFromInt(getKClass(&result));
 }
