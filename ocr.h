@@ -1,10 +1,26 @@
 #ifndef OCR_H
 #define OCR_H
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 #include <vector>
 #include <bitset>
 #include <math.h>
+
+// opencv
+#include <cv.h>
+#include <highgui.h>
+
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+// feedforward
+#include "feedforward.h"
+
+#define __IMAGE_SIZE__  1024
+#define __VECTOR_SITE__ 6
+#define __THRESHOLD__	220
 
 using namespace std;
 
@@ -17,7 +33,13 @@ class COCR
 {
 private:
 	std::vector<SInputExample> vExamples;
+
+	void saveExamples(const char* pcFilename);
+	void loadExamples(const char* pcFilename);
+
+	feedForward* pFeedForward;
 	
+	std::vector<float> getImageFromRect(cv::Mat& src);
 public:
 	COCR();
 	~COCR();
@@ -32,14 +54,22 @@ public:
 	static bool correct(std::vector<float> in, std::vector<float> out);
 	static void printv(std::vector<float> in);
 
+	void train(int iMaxSteps, 
+				  float fLearningRate, 
+				  float fMomentum);
 
-	void train(float fLearningRate, float fMomentum);
+	void saveExamples() {saveExamples("examples.txt");}
+	void loadExamples() {loadExamples("examples.txt");}
 
 	void save();
 	void load();
 
 	void pushInputExample(SInputExample example);
+	void addExampleSet(std::vector<SInputExample> examples);
 	void popInputExample();
+	void clearExamples();
+
+	std::vector<SInputExample> createExampleSetFromImage(const char* pcFilename);
 };
 
 #endif

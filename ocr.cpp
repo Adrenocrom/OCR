@@ -1,12 +1,17 @@
 #include "ocr.h"
 
 COCR::COCR() {
-
-
+	pFeedForward = NULL;
+	pFeedForward = new feedForward(__IMAGE_SIZE__,
+											 __VECTOR_SITE__,
+											 "100");
 }
 
 COCR::~COCR() {
-
+	if(pFeedForward) {
+		delete pFeedForward;
+		pFeedForward = NULL;
+	}
 }
 
 std::vector<float> COCR::setKClass(int k) {
@@ -38,7 +43,7 @@ int COCR::getKClass(std::vector<float>* pK) {
 	return result;
 }
 
-int OCR::getFromChar(char k) {
+int COCR::getFromChar(char k) {
 	if(k == '0') return 0;
 	if(k == '1') return 1;
 	if(k == '2') return 2;
@@ -104,9 +109,9 @@ int OCR::getFromChar(char k) {
 	else return 63;
 }
 
-std::vector<float> OCR::makeClean(std::vector<float> vIn)
+std::vector<float> COCR::makeClean(std::vector<float> vIn)
 {
-	for(int i = 0; i < vIn.size(); ++i) {
+	for(unsigned int i = 0; i < vIn.size(); ++i) {
 		if(vIn[i] < 0.5f) vIn[i] = 0.0f; 
 		else vIn[i] = 1.0f;
 	}
@@ -114,7 +119,7 @@ std::vector<float> OCR::makeClean(std::vector<float> vIn)
 	return vIn;
 }
 
-bool OCR::correct(std::vector<float> in, std::vector<float> out) {
+bool COCR::correct(std::vector<float> in, std::vector<float> out) {
 	float fSum = 0.0f;
 
 	for(int a = 0; a < in.size(); ++a) {
@@ -126,7 +131,7 @@ bool OCR::correct(std::vector<float> in, std::vector<float> out) {
  	return false;
 }
 
-void OCR::printv(std::vector<float> in) {
+void COCR::printv(std::vector<float> in) {
 	int size = in.size();
 
 	for(int i = 0; i < size; ++i) {
@@ -135,23 +140,185 @@ void OCR::printv(std::vector<float> in) {
 	printf("\n");
 }
 
-void OCR::pushInputExample(SInputExample example) {
+void COCR::pushInputExample(SInputExample example) {
 	vExamples.push_back(example);
 }
 
-void OCR::popInputExample() {
+void COCR::popInputExample() {
 	if(vExamples.size() > 0)
 		vExamples.pop_back();
 }
 
-void OCR::save() {
+void COCR::addExampleSet(std::vector<SInputExample> examples) {
+	int size = examples.size();
 
+	for(int i = 0; i < size; ++i)
+		vExamples.push_back(examples[i]);
 }
 
-void OCR::load() {
-
+void COCR::clearExamples() {
+	vExamples.clear();
 }
 
-void OCR::train(float fLearningRate, float fMomentum) {
+std::vector<float> COCR::getImageFromRect(cv::Mat& src) {
+	std::vector<float> out;
+	unsigned char *input = (unsigned char*)(src.data);
 
+	threshold(src, src, __THRESHOLD__, 255, cv::THRESH_BINARY_INV);
+
+	float p;
+	for(int y = 0; y < src.rows; ++y) {
+		for(int x = 0;  x < src.cols; ++x) {
+			p = input[src.step * x + y] / 255;
+			out.push_back(p);
+		}
+	}
+
+	return out;
+}
+
+void COCR::saveExamples(const char* pcFilename) {
+	FILE* pFile = NULL;
+
+	if((pFile = fopen(pcFilename, "w")) == NULL) {
+		fclose(pFile);
+		pFile = NULL;
+		return;
+	}
+
+	fprintf(pFile, "numExamples= %d\n\n", (int)vExamples.size());
+
+	for(int i = 0; i < vExamples.size(); ++i) {
+		for(int a = 0; a < vExamples[i].k.size()-1; ++a)
+			fprintf(pFile, "%.0f ", vExamples[i].k[a]);
+		fprintf(pFile, "%.0f\n", vExamples[i].k[vExamples[i].k.size()-1]);
+
+		for(int b = 0; b < vExamples[i].image.size()-1; ++b)
+			fprintf(pFile, "%.0f ", vExamples[i].image[b]);
+		fprintf(pFile, "%.0f\n", vExamples[i].image[vExamples[i].image.size()-1]);
+	}
+
+	fclose(pFile);
+	pFile = NULL;
+}
+
+void COCR::loadExamples(const char* pcFilename) {
+	FILE* pFile = NULL;
+	char cBuffer[200];
+	int numExamples;
+	float temp;
+
+	if((pFile = fopen(pcFilename, "r")) == NULL) {
+		fclose(pFile);
+		pFile = NULL;
+		return;
+	}
+
+	vExamples.clear();
+
+	fscanf(pFile, "%s", cBuffer);
+	fscanf(pFile, "%d", &numExamples);
+
+	for(int i = 0; i < numExamples; ++i) {
+		SInputExample example;
+		for(int k = 0; k < 6; ++k) {
+			fscanf(pFile, "%f", &temp);
+			example.k.push_back(temp);
+		}
+
+		example.k = makeClean(example.k);
+		for(int l = 0; l < 1024; ++l) {
+			fscanf(pFile, "%f", &temp);
+			example.image.push_back(temp);
+		}
+
+		vExamples.push_back(example);
+	}
+
+	fclose(pFile);
+	pFile = NULL;
+}
+
+void COCR::save() {
+	printf("Save Examples\n");
+	saveExamples("examples.txt");
+	printf("Save Network\n");
+	pFeedForward->saveWeights("net.txt");
+}
+
+void COCR::load() {
+	printf("Load Examples\n");
+	loadExamples("examples.txt");
+	printf("Load Network\n");
+	pFeedForward->loadWeights("net.txt");
+}
+
+void COCR::train(int iMaxSteps,
+					 float fLearningRate, 
+					 float fMomentum) {
+	bool trained = false;
+	int numExamples = vExamples.size();
+
+	printf("start learning... \n");
+
+	int steps = 0;
+	do {
+		trained = true;
+		steps++;
+
+		for(int i = 0; i < numExamples; ++i) {
+			std::vector<float> result = makeClean(pFeedForward->calcOutput(vExamples[i].image));
+
+			if(!correct(result, vExamples[i].k)) {
+				trained = false;
+
+				pFeedForward->learnNetwork(vExamples[i].image,
+									 				vExamples[i].k,
+													fLearningRate,
+													fMomentum);
+			}
+		}
+	} while(!trained && steps < iMaxSteps);
+
+	pFeedForward->saveWeights("net.txt");
+	printf("has learned from %d examples in %d steps. \n", numExamples, steps);
+}
+
+std::vector<SInputExample> COCR::createExampleSetFromImage(const char* pcFilename) {
+	std::vector<SInputExample> examples;
+
+	cv::Mat src = cv::imread(pcFilename, 1);
+	cv::Mat thr;
+	cv::Mat con;
+
+	cv::cvtColor(src, src, CV_BGR2GRAY);
+	cv::threshold(src, thr, __THRESHOLD__, 255, cv::THRESH_BINARY_INV);
+	cv::imshow("thr", thr);
+
+	thr.copyTo(con);
+
+	std::vector<std::vector<cv::Point> > contours;
+	std::vector< cv::Vec4i > 				 hierarchy;
+
+	cv::findContours(con, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+
+	for(unsigned int i = 0; i < contours.size(); i = hierarchy[i][0]) {
+		cv::Rect r = cv::boundingRect(contours[i]);
+		cv::Mat tmp = src(cv::Rect(r));
+		cv::Mat small;
+		cv::resize(tmp, small, cv::Size(32, 32), 0, 0, cv::INTER_CUBIC);
+
+		SInputExample example;
+		example.image = getImageFromRect(small);
+
+		printf("Klasse: ");
+		cv::imshow("small", small);
+		char k = cv::waitKey();
+		printf("%s\n", &k);
+
+		example.k = setKClass(getFromChar(k));
+		examples.push_back(example);
+	}
+
+	return examples;
 }
