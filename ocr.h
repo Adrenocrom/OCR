@@ -76,6 +76,8 @@ public:
 	std::vector<SInputExample> createWorkingSetFromImage(const char* pcFilename);
 
 	char detectFromExample(SInputExample example);
+
+	void detectWorkingSet();
 };
 
 #endif

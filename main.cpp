@@ -27,8 +27,10 @@ int main(int argc, char *argv[])
 		pOCR->save();
 	}
 	else if(strcmp(argv[1], "detect") == 0) {
+		pOCR->load();
 		pOCR->clearExamples();
 		pOCR->addExampleSet(pOCR->createWorkingSetFromImage(argv[2]));
+		pOCR->detectWorkingSet();
 	}
 
 	if(pOCR) {

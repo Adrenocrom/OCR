@@ -18,7 +18,7 @@ std::vector<float> COCR::setKClass(int k) {
 	std::vector<float> out;
 	std::bitset<6> klass(k);
 
-	for(int i = klass.size(); i >= 0; --i) {
+	for(int i = klass.size()-1; i >= 0; --i) {
 		if(klass[i] == 1)
 			out.push_back(1.0f);
 		else
@@ -259,11 +259,11 @@ void COCR::saveExamples(const char* pcFilename) {
 	for(int i = 0; i < vExamples.size(); ++i) {
 		for(int a = 0; a < vExamples[i].k.size()-1; ++a)
 			fprintf(pFile, "%.0f ", vExamples[i].k[a]);
-		fprintf(pFile, "%.0f\n", vExamples[i].k[vExamples[i].k.size()-1]);
+		fprintf(pFile, "%.0f\n\n", vExamples[i].k[vExamples[i].k.size()-1]);
 
 		for(int b = 0; b < vExamples[i].image.size()-1; ++b)
 			fprintf(pFile, "%.0f ", vExamples[i].image[b]);
-		fprintf(pFile, "%.0f\n", vExamples[i].image[vExamples[i].image.size()-1]);
+		fprintf(pFile, "%.0f\n\n", vExamples[i].image[vExamples[i].image.size()-1]);
 	}
 
 	fclose(pFile);
@@ -315,9 +315,9 @@ void COCR::save() {
 }
 
 void COCR::load() {
-	printf("Load Examples\n");
+	//printf("Load Examples\n");
 	loadExamples("examples.txt");
-	printf("Load Network\n");
+	//printf("Load Network\n");
 	pFeedForward->loadWeights("net.txt");
 }
 
@@ -383,8 +383,7 @@ std::vector<SInputExample> COCR::createExampleSetFromImage(const char* pcFilenam
 		printf("Klasse: ");
 		cv::imshow("small", small);
 		char k = cv::waitKey();
-		std::cout<<k<<std::endl;
-
+		
 		example.k = setKClass(getFromChar(k));
 		examples.push_back(example);
 	}
@@ -429,5 +428,17 @@ std::vector<SInputExample> COCR::createWorkingSetFromImage(const char* pcFilenam
 
 char COCR::detectFromExample(SInputExample example) {
 	std::vector<float> result = makeClean(pFeedForward->calcOutput(example.image));
+	example.k = result;
 	return getFromInt(getKClass(&result));
+}
+
+void COCR::detectWorkingSet() {
+	int size = vExamples.size();
+	char output[size+1];
+	for(int i = 0; i < size; ++i) {
+		output[i] = detectFromExample(vExamples[i]);
+	}
+	output[size] = '\0';
+
+	std::cout<<output<<std::endl;
 }
