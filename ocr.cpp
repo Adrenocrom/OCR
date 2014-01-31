@@ -383,6 +383,7 @@ std::vector<SInputExample> COCR::createExampleSetFromImage(const char* pcFilenam
 		printf("Klasse: ");
 		cv::imshow("small", small);
 		char k = cv::waitKey();
+		std::cout<<k<<std::endl;
 		
 		example.k = setKClass(getFromChar(k));
 		examples.push_back(example);
@@ -393,6 +394,8 @@ std::vector<SInputExample> COCR::createExampleSetFromImage(const char* pcFilenam
 
 std::vector<SInputExample> COCR::createWorkingSetFromImage(const char* pcFilename) {
 	std::vector<SInputExample> examples;
+	m_fAvgHeight = 0.0f;
+	m_fAvgWidth  = 0.0f;
 
 	cv::Mat src = cv::imread(pcFilename, 1);
 	cv::Mat thr;
@@ -421,7 +424,15 @@ std::vector<SInputExample> COCR::createWorkingSetFromImage(const char* pcFilenam
 		example.x = r.x;
 		example.y = r.y;
 		examples.push_back(example);
+
+		m_fAvgHeight += r.height;
+		m_fAvgWidth  += r.width;
 	}
+
+	m_fAvgHeight	/= examples.size();
+	m_fAvgWidth	/= examples.size();
+
+	std::cout<<"Avg "<<m_fAvgWidth<<" x "<<m_fAvgHeight<<std::endl;
 
 	return examples;
 }
@@ -436,9 +447,27 @@ void COCR::detectWorkingSet() {
 	int size = vExamples.size();
 	char output[size+1];
 	for(int i = 0; i < size; ++i) {
+		//std::cout<<"zeile: "<<vExamples[i].y<<std::endl;
 		output[i] = detectFromExample(vExamples[i]);
 	}
 	output[size] = '\0';
 
 	std::cout<<output<<std::endl;
+
+	float fEpsilon = m_fAvgHeight / 2.0f;
+	std::vector<int> iLineLables;
+	std::list<SInputExample> exList;
+
+	for(int i = 0; i < size; ++i) {
+		exList.push_back(vExamples[i]);
+	}
+
+	exList.sort(compare_height);
+	
+	std::vector<int> vLabels;
+	std::list<SInputExample>::iterator it;
+	for(it = exList.begin(); it != exList.end(); ++it) {
+		SInputExample ex = *it;
+		std::cout<<ex.y<<std::endl;
+	}
 }

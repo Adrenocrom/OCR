@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <bitset>
+#include <list>
 #include <math.h>
 
 // opencv
@@ -31,6 +32,18 @@ struct SInputExample {
 	int y;
 };
 
+bool compare_width (SInputExample& first, SInputExample& second) {
+	if(first.x < second.x)
+		return true;
+	false;
+}
+
+bool compare_height (SInputExample& first, SInputExample& second) {
+	if(first.y < second.y)
+		return true;
+	false;
+}
+
 class COCR
 {
 private:
@@ -42,6 +55,10 @@ private:
 	feedForward* pFeedForward;
 	
 	std::vector<float> getImageFromRect(cv::Mat& src);
+
+	float	m_fAvgHeight;
+	float m_fAvgWidth;
+
 public:
 	COCR();
 	~COCR();
