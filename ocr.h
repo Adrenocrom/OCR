@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <string>
 #include <vector>
 #include <bitset>
 #include <list>
@@ -96,7 +97,9 @@ public:
 
 	std::vector<std::vector<SInputExample> > detectWorkingSet();
 
-	std::vector<SLine> getPageFromLines(std::vector<std::vector<SInputExample> > vLines);
+	std::vector<SLine> seperateWordsInLines(std::vector<std::vector<SInputExample> > vLines);
+
+	std::string getStringFromLines(std::vector<SLine> vLines);
 };
 
 #endif

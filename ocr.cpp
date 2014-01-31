@@ -500,10 +500,79 @@ std::vector<std::vector<SInputExample> > COCR::detectWorkingSet() {
 	}
 	vLines.push_back(vLine);
 
+	// Sortchars in line
+	for(int l = 0; l < vLines.size(); ++l) {
+		std::list<SInputExample> lineList;
+
+		for(int i = 0; i < vLines[l].size(); ++i)
+			lineList.push_back(vLines[l][i]);
+		vLines[l].clear();
+		lineList.sort(compare_width);
+		for(it = lineList.begin(); it != lineList.end(); ++it) {
+			SInputExample ex = *it;
+			vLines[l].push_back(ex);
+		}
+	}
+
 	//std::cout<<"Num of lines: "<<vLines.size()<<std::endl;
 	return vLines;
 }
 
-std::vector<SLine> COCR::getPageFromLines(std::vector<std::vector<SInputExample> > vLines) {
-	
+std::vector<SLine> COCR::seperateWordsInLines(std::vector<std::vector<SInputExample> > vLines) {
+	std::vector<SLine> vResultLines;
+
+	float fEpsilon = 1.5f * m_fAvgWidth;
+	float fDelta;
+	for(int l = 0; l < vLines.size(); ++l) {
+		SLine line;
+		
+		SWord word;
+		word.chars.push_back(vLines[l][0]);
+
+		for(int i = 1; i < vLines[l].size(); ++i) {
+			fDelta = vLines[l][i].x - vLines[l][i-1].x;
+
+			if(fDelta > fEpsilon) {
+				line.words.push_back(word);
+				word.chars.clear();
+			}
+
+			word.chars.push_back(vLines[l][i]);
+		}
+		line.words.push_back(word);
+		
+		vResultLines.push_back(line);
+	}
+
+	return vResultLines;	
+}
+
+std::string COCR::getStringFromLines(std::vector<SLine> vLines) {
+	std::string result;
+
+	for(int l = 0; l < vLines.size(); ++l) {
+		std::string line;
+
+		for(int w = 0; w < vLines[l].words.size(); ++w) {
+			SWord word = vLines[l].words[w];
+			char cWord[word.chars.size()+1];
+			for(int c = 0; c < word.chars.size(); ++c) {
+				cWord[c] = word.chars[c].detected;
+			}
+			cWord[word.chars.size()] = '\0';
+			std::string StrWord(cWord);
+
+			if(w == 0)
+				line.append(StrWord);
+			else
+				line.append(" " + StrWord);
+		}
+
+		if(l != (vLines.size()-1))
+			result.append(line + "\n");
+		else
+			result.append(line);
+	}
+
+	return result;
 }
