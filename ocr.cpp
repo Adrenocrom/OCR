@@ -1,5 +1,17 @@
 #include "ocr.h"
 
+bool compare_width (SInputExample& first, SInputExample& second) {
+	if(first.x < second.x)
+		return true;
+	false;
+}
+
+bool compare_height (SInputExample& first, SInputExample& second) {
+	if(first.y < second.y)
+		return true;
+	false;
+}
+
 COCR::COCR() {
 	pFeedForward = NULL;
 	pFeedForward = new feedForward(__IMAGE_SIZE__,
@@ -443,31 +455,55 @@ char COCR::detectFromExample(SInputExample example) {
 	return getFromInt(getKClass(&result));
 }
 
-void COCR::detectWorkingSet() {
+std::vector<std::vector<SInputExample> > COCR::detectWorkingSet() {
 	int size = vExamples.size();
 	char output[size+1];
 	for(int i = 0; i < size; ++i) {
 		//std::cout<<"zeile: "<<vExamples[i].y<<std::endl;
 		output[i] = detectFromExample(vExamples[i]);
+		vExamples[i].detected = output[i];
 	}
 	output[size] = '\0';
 
 	std::cout<<output<<std::endl;
 
 	float fEpsilon = m_fAvgHeight / 2.0f;
-	std::vector<int> iLineLables;
 	std::list<SInputExample> exList;
 
-	for(int i = 0; i < size; ++i) {
+	for(int i = 0; i < size; ++i)
 		exList.push_back(vExamples[i]);
-	}
 
 	exList.sort(compare_height);
-	
-	std::vector<int> vLabels;
+
 	std::list<SInputExample>::iterator it;
+	vExamples.clear();
 	for(it = exList.begin(); it != exList.end(); ++it) {
 		SInputExample ex = *it;
-		std::cout<<ex.y<<std::endl;
+		//std::cout<<ex.y<<std::endl;
+
+		vExamples.push_back(ex);
 	}
+
+	float fDelta;
+	std::vector<std::vector<SInputExample> > vLines;
+	std::vector<SInputExample> vLine;
+	vLine.push_back(vExamples[0]);
+	for(int i = 1; i < size; ++i) {
+		fDelta = vExamples[i].y - vExamples[i-1].y;
+
+		if(fDelta > fEpsilon) {
+			vLines.push_back(vLine);
+			vLine.clear();
+		}
+
+		vLine.push_back(vExamples[i]);
+	}
+	vLines.push_back(vLine);
+
+	//std::cout<<"Num of lines: "<<vLines.size()<<std::endl;
+	return vLines;
+}
+
+std::vector<SLine> COCR::getPageFromLines(std::vector<std::vector<SInputExample> > vLines) {
+	
 }

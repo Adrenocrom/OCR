@@ -30,19 +30,19 @@ struct SInputExample {
 	std::vector<float> k;
 	int x;
 	int y;
+	char detected;
 };
 
-bool compare_width (SInputExample& first, SInputExample& second) {
-	if(first.x < second.x)
-		return true;
-	false;
-}
+struct SWord {
+	std::vector<SInputExample> chars;
+};
 
-bool compare_height (SInputExample& first, SInputExample& second) {
-	if(first.y < second.y)
-		return true;
-	false;
-}
+struct SLine {
+	std::vector<SWord> words;
+};
+
+extern bool compare_width (SInputExample& first, SInputExample& second);
+extern bool compare_height (SInputExample& first, SInputExample& second);
 
 class COCR
 {
@@ -94,7 +94,9 @@ public:
 
 	char detectFromExample(SInputExample example);
 
-	void detectWorkingSet();
+	std::vector<std::vector<SInputExample> > detectWorkingSet();
+
+	std::vector<SLine> getPageFromLines(std::vector<std::vector<SInputExample> > vLines);
 };
 
 #endif
